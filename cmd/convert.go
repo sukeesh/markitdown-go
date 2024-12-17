@@ -39,12 +39,3 @@ Example:
 		fmt.Printf("Conversion completed. Markdown saved to %s with images in %s/\n", outputMarkdown, assetsDir)
 	},
 }
-
-func init() {
-	// Define flags specific to the convert command
-	convertCmd.Flags().StringP("output", "o", "output.md", "Output Markdown file")
-	convertCmd.Flags().StringP("assets", "a", "assets", "Directory to save extracted images")
-
-	// Mark flags as required if necessary
-	// convertCmd.MarkFlagRequired("output")
-}
