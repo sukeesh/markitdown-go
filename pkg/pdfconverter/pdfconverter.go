@@ -13,7 +13,8 @@ import (
 	"github.com/ledongthuc/pdf"
 )
 
-// ConvertPDFToMarkdown orchestrates the conversion from PDF to Markdown
+// ConvertPDFToMarkdown converts a PDF file to Markdown format, extracting both text and images.
+// The images are saved to assetsDir and referenced in the resulting markdown file.
 func ConvertPDFToMarkdown(pdfPath, outputMarkdown, assetsDir string) error {
 	// Create assets directory if it doesn't exist
 	err := createAssetsDir(assetsDir)
@@ -59,7 +60,8 @@ func createAssetsDir(assetsDir string) error {
 	return nil
 }
 
-// extractText extracts text from the PDF using ledongthuc/pdf
+// extractText extracts plain text content from a PDF file using the ledongthuc/pdf library.
+// It preserves line breaks and returns the text as a single string.
 func extractText(pdfPath string) (string, error) {
 	f, r, err := pdf.Open(pdfPath)
 	if err != nil {
@@ -86,13 +88,12 @@ func extractText(pdfPath string) (string, error) {
 	return buf.String(), nil
 }
 
-// extractImages extracts images from the PDF using pdfcpu CLI
+// extractImages extracts all images from the PDF using pdfcpu CLI tool and saves them
+// to the specified assets directory. Returns a list of extracted image file paths.
 func extractImages(pdfPath, assetsDir string) ([]string, error) {
-	// Use pdfcpu CLI to extract images
 	cmd := exec.Command("pdfcpu", "extract", "-mode", "image", pdfPath, assetsDir)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("failed to extract images using pdfcpu: %v\nOutput: %s", err, string(output))
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("pdfcpu image extraction failed: %w\nOutput: %s", err, output)
 	}
 
 	// Collect paths of extracted images
@@ -122,18 +123,23 @@ func isImageFile(filename string) bool {
 	}
 }
 
-// generateMarkdown creates a Markdown string with text and image references
+// generateMarkdown creates a Markdown document combining the extracted text and image references.
+// Images are appended at the end of the document with auto-incrementing numbers.
 func generateMarkdown(text string, images []string, assetsDir string) (string, error) {
 	var md strings.Builder
 
-	// Write the extracted text
+	// Add text content
 	md.WriteString(text)
-	md.WriteString("\n\n")
 
-	// Insert images at the end
+	// Add a separator between text and images if there are images
+	if len(images) > 0 {
+		md.WriteString("\n\n---\n\n")
+	}
+
+	// Add image references
 	for i, imgPath := range images {
 		relativePath := filepath.Join(assetsDir, filepath.Base(imgPath))
-		md.WriteString(fmt.Sprintf("![Image %d](%s)\n\n", i+1, relativePath))
+		md.WriteString(fmt.Sprintf("![Image %d](%s)\n", i+1, relativePath))
 	}
 
 	return md.String(), nil
